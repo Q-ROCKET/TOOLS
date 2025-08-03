@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>实时定位</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .info-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .info-title i {
+            margin-right: 10px;
+            font-size: 20px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 500;
+            color: #666;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: #333;
+            font-family: 'Courier New', monospace;
+        }
+
+        .compass-container {
+            text-align: center;
+            position: relative;
+        }
+
+        .compass {
+            width: 200px;
+            height: 200px;
+            border: 3px solid #4CAF50;
+            border-radius: 50%;
+            margin: 20px auto;
+            position: relative;
+            background: #f9f9f9;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .compass-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 10px;
+            height: 10px;
+            background: #ff4444;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+        }
+
+        .compass-needle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 4px;
+            height: 80px;
+            background: #ff4444;
+            transform-origin: bottom center;
+            transform: translate(-50%, -100%) rotate(0deg);
+            transition: transform 0.3s ease;
+            z-index: 1;
+        }
+
+        .compass-needle::after {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -3px;
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-bottom: 15px solid #ff4444;
+        }
+
+        .compass-directions {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+        }
+
+        .direction {
+            position: absolute;
+            font-weight: bold;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .direction.north {
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .direction.south {
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .direction.east {
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .direction.west {
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .update-time {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+
+        .accuracy-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 8px;
+        }
+
+        .accuracy-high {
+            background: #4CAF50;
+        }
+
+        .accuracy-medium {
+            background: #FF9800;
+        }
+
+        .accuracy-low {
+            background: #f44336;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #45a049;
+        }
+
+        .btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>📱 实时定位系统</h1>
+
+        <div id="status" class="status loading">
+            正在获取位置信息...
+        </div>
+
+        <div class="info-card">
+            <div class="info-title">📍 坐标信息</div>
+            <div class="info-item">
+                <span class="info-label">纬度:</span>
+                <span id="latitude" class="info-value">--</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">经度:</span>
+                <span id="longitude" class="info-value">--</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">海拔:</span>
+                <span id="altitude" class="info-value">-- 米</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">精度:</span>
+                <span id="accuracy" class="info-value">-- 米 <span id="accuracy-indicator"></span></span>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <div class="info-title">📡 卫星信息</div>
+            <div class="info-item">
+                <span class="info-label">卫星数量:</span>
+                <span id="satellites" class="info-value">--</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">定位类型:</span>
+                <span id="position-type" class="info-value">--</span>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <div class="info-title">🧭 罗盘信息</div>
+            <div class="compass-container">
+                <div class="compass">
+                    <div class="compass-directions">
+                        <div class="direction north">N</div>
+                        <div class="direction south">S</div>
+                        <div class="direction east">E</div>
+                        <div class="direction west">W</div>
+                    </div>
+                    <div class="compass-needle" id="compass-needle"></div>
+                    <div class="compass-center"></div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">方位角:</span>
+                    <span id="heading" class="info-value">--°</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">精度:</span>
+                    <span id="heading-accuracy" class="info-value">--°</span>
+                </div>
+            </div>
+        </div>
+
+        <button id="start-btn" class="btn" onclick="startTracking()">开始定位</button>
+        <button id="stop-btn" class="btn" onclick="stopTracking()" disabled>停止定位</button>
+
+        <div class="update-time" id="update-time">
+            最后更新: --
+        </div>
+    </div>
+
+    <script>
+        let watchId = null;
+        let compassWatchId = null;
+        let updateInterval = null;
+        let lastUpdateTime = null;
+
+        // 检查浏览器支持
+        function checkSupport() {
+            if (!navigator.geolocation) {
+                updateStatus('您的浏览器不支持地理位置定位', 'error');
+                return false;
+            }
+            return true;
+        }
+
+        // 更新状态显示
+        function updateStatus(message, type) {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = message;
+            statusElement.className = 'status ' + type;
+        }
+
+        // 格式化时间
+        function formatTime(date) {
+            return date.toLocaleTimeString('zh-CN', {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        // 更新时间显示
+        function updateLastUpdateTime() {
+            const timeElement = document.getElementById('update-time');
+            if (lastUpdateTime) {
+                timeElement.textContent = `最后更新: ${formatTime(lastUpdateTime)}`;
+            }
+        }
+
+        // 根据精度设置指示器
+        function setAccuracyIndicator(accuracy) {
+            const indicator = document.getElementById('accuracy-indicator');
+            indicator.className = 'accuracy-indicator';
+
+            if (accuracy <= 10) {
+                indicator.classList.add('accuracy-high');
+            } else if (accuracy <= 50) {
+                indicator.classList.add('accuracy-medium');
+            } else {
+                indicator.classList.add('accuracy-low');
+            }
+        }
+
+        // 更新位置信息
+        function updatePosition(position) {
+            lastUpdateTime = new Date();
+
+            // 更新坐标信息
+            document.getElementById('latitude').textContent = position.coords.latitude.toFixed(6);
+            document.getElementById('longitude').textContent = position.coords.longitude.toFixed(6);
+
+            // 更新海拔信息
+            if (position.coords.altitude !== null) {
+                document.getElementById('altitude').textContent = position.coords.altitude.toFixed(2) + ' 米';
+            } else {
+                document.getElementById('altitude').textContent = '-- 米';
+            }
+
+            // 更新精度信息
+            document.getElementById('accuracy').textContent = position.coords.accuracy.toFixed(0) + ' 米 ';
+            setAccuracyIndicator(position.coords.accuracy);
+
+            // 估算卫星数量（简化处理）
+            let satellites = '--';
+            if (position.coords.accuracy <= 5) {
+                satellites = '8-12';
+            } else if (position.coords.accuracy <= 20) {
+                satellites = '5-8';
+            } else if (position.coords.accuracy <= 100) {
+                satellites = '3-5';
+            } else {
+                satellites = '1-3';
+            }
+            document.getElementById('satellites').textContent = satellites;
+
+            // 定位类型 
+            let positionType = '未知';
+            if (position.coords.accuracy <= 5) {
+                positionType = '高精度 (GPS)';
+            } else if (position.coords.accuracy <= 50) {
+                positionType = '中精度 (WiFi/基站)';
+            } else {
+                positionType = '低精度 (网络)';
+            }
+            document.getElementById('position-type').textContent = positionType;
+
+            updateStatus('定位成功', 'success');
+            updateLastUpdateTime();
+        }
+
+        // 更新罗盘信息 
+        function updateCompass(heading, accuracy) {
+            const needle = document.getElementById('compass-needle');
+            const headingElement = document.getElementById('heading');
+            const accuracyElement = document.getElementById('heading-accuracy');
+
+            if (heading !== null) {
+                needle.style.transform = `translate(-50%, -100%) rotate(${heading}deg)`;
+                headingElement.textContent = heading.toFixed(1) + '°';
+            } else {
+                headingElement.textContent = '--°';
+            }
+
+            if (accuracy !== null) {
+                accuracyElement.textContent = accuracy.toFixed(1) + '°';
+            } else {
+                accuracyElement.textContent = '--°';
+            }
+        }
+
+        // 位置获取错误处理
+        function handleError(error) {
+            let errorMessage = '';
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage = '用户拒绝了地理位置请求';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage = '位置信息不可用';
+                    break;
+                case error.TIMEOUT:
+                    errorMessage = '获取位置信息超时';
+                    break;
+                default:
+                    errorMessage = '获取位置信息时发生未知错误';
+                    break;
+            }
+            updateStatus(errorMessage, 'error');
+        }
+
+        // 启动定位追踪
+        function startTracking() {
+            if (!checkSupport()) return;
+
+            document.getElementById('start-btn').disabled = true;
+            document.getElementById('stop-btn').disabled = false;
+
+            updateStatus('正在获取位置信息...', 'loading');
+
+            // 开始位置追踪 
+            watchId = navigator.geolocation.watchPosition(
+                updatePosition,
+                handleError,
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+
+            // 开始罗盘追踪
+            if ('DeviceOrientationEvent' in window) {
+                compassWatchId = window.addEventListener('deviceorientation', function (event) {
+                    if (event.alpha !== null) {
+                        updateCompass(event.alpha, event.alpha);
+                    }
+                });
+            } else {
+                updateCompass(null, null);
+            }
+
+            // 定期更新时间显示
+            updateInterval = setInterval(updateLastUpdateTime, 1000);
+        }
+
+        // 停止定位追踪
+        function stopTracking() {
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+
+            if (compassWatchId !== null) {
+                window.removeEventListener('deviceorientation', compassWatchId);
+                compassWatchId = null;
+            }
+
+            if (updateInterval !== null) {
+                clearInterval(updateInterval);
+                updateInterval = null;
+            }
+
+            document.getElementById('start-btn').disabled = false;
+            document.getElementById('stop-btn').disabled = true;
+            updateStatus('定位已停止', 'loading');
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function () {
+            if (!checkSupport()) {
+                document.getElementById('start-btn').disabled = true;
+            }
+        });
+
+        // 页面卸载时清理
+        window.addEventListener('beforeunload', function () {
+            stopTracking();
+        });
+    </script>
+</body>
+
+</html>
